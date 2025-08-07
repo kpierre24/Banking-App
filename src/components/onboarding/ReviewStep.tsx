@@ -69,13 +69,14 @@ export const ReviewStep = ({ formData, prevStep, goToStep, submit }: ReviewStepP
         <CardDescription>Please review all the information carefully before submitting.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <ReviewSection title="Basic Information" data={formData.basicInfo} onEdit={() => goToStep(1)} />
-        <ReviewSection title="Address" data={formData.address} onEdit={() => goToStep(2)} />
+        <ReviewSection title="Basic Information" data={formData.basicInfo} onEdit={() => goToStep(2)} />
+        <ReviewSection title="Address" data={formData.address} onEdit={() => goToStep(3)} />
+        <ReviewSection title="Employment Information" data={formData.employmentInfo} onEdit={() => goToStep(4)} />
         
         <div>
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">ID Information</h3>
-            <Button variant="ghost" size="icon" onClick={() => goToStep(3)}>
+            <Button variant="ghost" size="icon" onClick={() => goToStep(5)}>
               <Pencil className="h-4 w-4" />
             </Button>
           </div>
@@ -86,10 +87,10 @@ export const ReviewStep = ({ formData, prevStep, goToStep, submit }: ReviewStepP
           </div>
         </div>
 
-        <YesNoReviewSection title="Politically Exposed Person" data={formData.pep} onEdit={() => goToStep(4)} />
-        <YesNoReviewSection title="Foreign National" data={formData.foreignNational} onEdit={() => goToStep(5)} />
-        <YesNoReviewSection title="Power of Attorney" data={formData.poa} onEdit={() => goToStep(6)} />
-        <ReviewSection title="Beneficiary" data={formData.beneficiary} onEdit={() => goToStep(7)} />
+        <YesNoReviewSection title="Politically Exposed Person" data={formData.pep} onEdit={() => goToStep(6)} />
+        <YesNoReviewSection title="Foreign National" data={formData.foreignNational} onEdit={() => goToStep(7)} />
+        <YesNoReviewSection title="Power of Attorney" data={formData.poa} onEdit={() => goToStep(8)} />
+        <ReviewSection title="Beneficiary" data={formData.beneficiary} onEdit={() => goToStep(9)} />
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button className="bg-brand-secondary hover:bg-brand-secondary/90 text-white" onClick={prevStep}>Back</Button>

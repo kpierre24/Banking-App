@@ -12,10 +12,14 @@ import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { CustomerTypeStep } from "@/components/onboarding/CustomerTypeStep";
 import { showError } from "@/utils/toast";
+import { GettingReadyStep } from "@/components/onboarding/GettingReadyStep";
+import { EmploymentInformationStep } from "@/components/onboarding/EmploymentInformationStep";
 
 const stepNames = [
+  "Getting Ready",
   "Basic Info",
   "Address",
+  "Employment Info",
   "ID Info",
   "PEP",
   "Foreign National",
@@ -38,10 +42,16 @@ const Index = () => {
       return;
     }
     setCustomerType(type);
+    setStep(1); // Start at step 1 when a customer type is selected
   };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS + 1));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
+  
+  const goBackToCustomerType = () => {
+    setCustomerType(null);
+  }
+
   const goToStep = (stepNumber: number) => {
     if (stepNumber <= step) {
       setStep(stepNumber);
@@ -67,22 +77,26 @@ const Index = () => {
     const props = { formData, updateFormData, nextStep, prevStep };
     switch (step) {
       case 1:
-        return <BasicInformationStep {...props} nextStep={() => { updateFormData(formData); nextStep(); }} />;
+        return <GettingReadyStep nextStep={nextStep} prevStep={goBackToCustomerType} />;
       case 2:
-        return <AddressStep {...props} />;
+        return <BasicInformationStep {...props} nextStep={() => { updateFormData(formData); nextStep(); }} />;
       case 3:
-        return <IdInformationStep {...props} />;
+        return <AddressStep {...props} />;
       case 4:
-        return <YesNoQuestionStep {...props} title="Politically Exposed Person" description="Please answer the following question." question="Are you or an immediate family member a Politically Exposed Person (PEP)?" formKey="pep" />;
+        return <EmploymentInformationStep {...props} />;
       case 5:
-        return <YesNoQuestionStep {...props} title="Foreign National Status" description="Please answer the following question." question="Are you a foreign national?" formKey="foreignNational" />;
+        return <IdInformationStep {...props} />;
       case 6:
-        return <YesNoQuestionStep {...props} title="Power of Attorney" description="Please answer the following question." question="Do you wish to grant Power of Attorney on this account?" formKey="poa" />;
+        return <YesNoQuestionStep {...props} title="Politically Exposed Person" description="Please answer the following question." question="Are you or an immediate family member a Politically Exposed Person (PEP)?" formKey="pep" />;
       case 7:
-        return <BeneficiaryStep {...props} />;
+        return <YesNoQuestionStep {...props} title="Foreign National Status" description="Please answer the following question." question="Are you a foreign national?" formKey="foreignNational" />;
       case 8:
-        return <MembershipDeclarationStep {...props} />;
+        return <YesNoQuestionStep {...props} title="Power of Attorney" description="Please answer the following question." question="Do you wish to grant Power of Attorney on this account?" formKey="poa" />;
       case 9:
+        return <BeneficiaryStep {...props} />;
+      case 10:
+        return <MembershipDeclarationStep {...props} />;
+      case 11:
         return <ReviewStep formData={formData} prevStep={prevStep} goToStep={goToStep} submit={submitApplication} />;
       default:
         return <div>Unknown Step</div>;
