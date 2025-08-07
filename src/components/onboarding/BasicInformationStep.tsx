@@ -11,6 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countries } from "@/lib/countries";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -35,8 +36,6 @@ const calculateAge = (birthDate: Date) => {
   }
   return age;
 };
-
-const nationalities = ["American", "British", "Canadian", "Australian", "German", "French", "Japanese", "Other"];
 
 export interface OnboardingStepProps {
   formData: any;
@@ -69,18 +68,11 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
     <StepContainer title="Basic Information" description="Please provide your personal details." onNext={form.handleSubmit(onSubmit)}>
       <Form {...form}>
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="firstName" render={({ field }) => (
               <FormItem>
                 <FormLabel>First Name</FormLabel>
                 <FormControl><Input placeholder="John" {...field} /></FormControl>
-                <FormMessage />
-              </FormItem>
-            )} />
-            <FormField control={form.control} name="middleName" render={({ field }) => (
-              <FormItem>
-                <FormLabel>Middle Name (Optional)</FormLabel>
-                <FormControl><Input placeholder="F." {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
@@ -92,6 +84,14 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
               </FormItem>
             )} />
           </div>
+
+          <FormField control={form.control} name="middleName" render={({ field }) => (
+            <FormItem>
+              <FormLabel>Middle Name (Optional)</FormLabel>
+              <FormControl><Input placeholder="F." {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
           
           <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
             <FormItem className="flex flex-col">
@@ -133,7 +133,7 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {nationalities.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                  {countries.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
               <FormMessage />
