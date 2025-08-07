@@ -1,4 +1,4 @@
-import { useState } from "react";
+import usePersistentState from "@/hooks/usePersistentState";
 import { BasicInformationStep } from "@/components/onboarding/BasicInformationStep";
 import { AddressStep } from "@/components/onboarding/AddressStep";
 import { YesNoQuestionStep } from "@/components/onboarding/YesNoQuestionStep";
@@ -8,6 +8,7 @@ import { ReviewStep } from "@/components/onboarding/ReviewStep";
 import { SuccessStep } from "@/components/onboarding/SuccessStep";
 import { OnboardingHeader } from "@/components/onboarding/OnboardingHeader";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
+import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 
 const stepNames = [
   "Basic Info",
@@ -23,12 +24,18 @@ const stepNames = [
 const TOTAL_STEPS = stepNames.length;
 
 const Index = () => {
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({});
+  const [step, setStep] = usePersistentState("onboardingStep", 1);
+  const [formData, setFormData] = usePersistentState("onboardingFormData", {});
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS + 1));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
-  const goToStep = (stepNumber: number) => setStep(stepNumber);
+  const goToStep = (stepNumber: number) => {
+    // Allow navigation to any step already visited or the current one
+    if (stepNumber <= step) {
+      setStep(stepNumber);
+    }
+  };
+  
   const reset = () => {
     setStep(1);
     setFormData({});
@@ -48,7 +55,7 @@ const Index = () => {
     const props = { formData, updateFormData, nextStep, prevStep };
     switch (step) {
       case 1:
-        return <BasicInformationStep {...props} />;
+        return <BasicInformationStep {...props} nextStep={() => { updateFormData(formData); nextStep(); }} />;
       case 2:
         return <AddressStep {...props} />;
       case 3:
@@ -72,13 +79,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-8">
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-6xl">
         <OnboardingHeader />
         {step <= TOTAL_STEPS && (
           <OnboardingStepper currentStep={step} totalSteps={TOTAL_STEPS} stepNames={stepNames} goToStep={goToStep} />
         )}
         <div className="mt-8 w-full">
-          {renderStep()}
+          {step > TOTAL_STEPS ? (
+             <div className="flex justify-center">
+                <SuccessStep reset={reset} />
+            </div>
+          ) : (
+            <OnboardingLayout>
+              {renderStep()}
+            </OnboardingLayout>
+          )}
         </div>
       </div>
     </div>
