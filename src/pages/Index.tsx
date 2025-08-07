@@ -96,7 +96,7 @@ const Index = () => {
     return (
       <>
         <OnboardingHeader />
-        <OnboardingStepper currentStep={step} totalSteps={TOTAL_STEPS} stepNames={stepNames} goToStep={goToStep} />
+        <OnboardingStepper currentStep={step} totalSteps={TOTAL_STEPS} />
         <div className="mt-8 w-full">
           {renderStep()}
         </div>
