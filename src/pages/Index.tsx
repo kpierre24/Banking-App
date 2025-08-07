@@ -1,19 +1,22 @@
+import { Suspense, lazy } from 'react';
 import usePersistentState from "@/hooks/usePersistentState";
-import { BasicInformationStep } from "@/components/onboarding/BasicInformationStep";
-import { AddressStep } from "@/components/onboarding/AddressStep";
-import { IdInformationStep } from "@/components/onboarding/IdInformationStep";
-import { YesNoQuestionStep } from "@/components/onboarding/YesNoQuestionStep";
-import { BeneficiaryStep } from "@/components/onboarding/BeneficiaryStep";
-import { MembershipDeclarationStep } from "@/components/onboarding/MembershipDeclarationStep";
-import { ReviewStep } from "@/components/onboarding/ReviewStep";
-import { SuccessStep } from "@/components/onboarding/SuccessStep";
 import { OnboardingHeader } from "@/components/onboarding/OnboardingHeader";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { CustomerTypeStep } from "@/components/onboarding/CustomerTypeStep";
 import { showError } from "@/utils/toast";
-import { GettingReadyStep } from "@/components/onboarding/GettingReadyStep";
-import { EmploymentInformationStep } from "@/components/onboarding/EmploymentInformationStep";
+import { Skeleton } from '@/components/ui/skeleton';
+
+const GettingReadyStep = lazy(() => import('@/components/onboarding/GettingReadyStep').then(module => ({ default: module.GettingReadyStep })));
+const BasicInformationStep = lazy(() => import('@/components/onboarding/BasicInformationStep').then(module => ({ default: module.BasicInformationStep })));
+const AddressStep = lazy(() => import('@/components/onboarding/AddressStep').then(module => ({ default: module.AddressStep })));
+const EmploymentInformationStep = lazy(() => import('@/components/onboarding/EmploymentInformationStep').then(module => ({ default: module.EmploymentInformationStep })));
+const IdInformationStep = lazy(() => import('@/components/onboarding/IdInformationStep').then(module => ({ default: module.IdInformationStep })));
+const YesNoQuestionStep = lazy(() => import('@/components/onboarding/YesNoQuestionStep').then(module => ({ default: module.YesNoQuestionStep })));
+const BeneficiaryStep = lazy(() => import('@/components/onboarding/BeneficiaryStep').then(module => ({ default: module.BeneficiaryStep })));
+const MembershipDeclarationStep = lazy(() => import('@/components/onboarding/MembershipDeclarationStep').then(module => ({ default: module.MembershipDeclarationStep })));
+const ReviewStep = lazy(() => import('@/components/onboarding/ReviewStep').then(module => ({ default: module.ReviewStep })));
+const SuccessStep = lazy(() => import('@/components/onboarding/SuccessStep').then(module => ({ default: module.SuccessStep })));
+const CustomerTypeStep = lazy(() => import('@/components/onboarding/CustomerTypeStep').then(module => ({ default: module.CustomerTypeStep })));
 
 const stepNames = [
   "Getting Ready",
@@ -31,6 +34,29 @@ const stepNames = [
 
 const TOTAL_STEPS = stepNames.length;
 
+const StepLoadingSkeleton = () => (
+  <div className="w-full space-y-4">
+    <div className="space-y-2">
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+    </div>
+    <div className="space-y-6 pt-4">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-1/4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-1/4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-1/4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    </div>
+  </div>
+);
+
 const Index = () => {
   const [customerType, setCustomerType] = usePersistentState<'new' | 'existing' | null>('customerType', null);
   const [step, setStep] = usePersistentState("onboardingStep", 1);
@@ -42,7 +68,7 @@ const Index = () => {
       return;
     }
     setCustomerType(type);
-    setStep(1); // Start at step 1 when a customer type is selected
+    setStep(1);
   };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS + 1));
@@ -70,6 +96,8 @@ const Index = () => {
 
   const submitApplication = () => {
     console.log("Submitting application:", formData);
+    // Note: In a real application, avoid storing sensitive data in localStorage.
+    // Data should be sent to a secure backend and cleared from client-side storage.
     nextStep();
   };
 
@@ -120,11 +148,13 @@ const Index = () => {
 
   return (
     <MainLayout>
-      {!customerType ? (
-        <CustomerTypeStep onSelect={handleCustomerTypeSelect} />
-      ) : (
-        renderOnboardingContent()
-      )}
+      <Suspense fallback={<StepLoadingSkeleton />}>
+        {!customerType ? (
+          <CustomerTypeStep onSelect={handleCustomerTypeSelect} />
+        ) : (
+          renderOnboardingContent()
+        )}
+      </Suspense>
     </MainLayout>
   );
 };

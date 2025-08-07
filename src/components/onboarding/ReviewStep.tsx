@@ -14,7 +14,7 @@ const ReviewSection = ({ title, data, onEdit }: { title: string; data: any; onEd
   <div>
     <div className="flex justify-between items-center mb-2">
       <h3 className="text-lg font-semibold">{title}</h3>
-      <Button variant="ghost" size="icon" onClick={onEdit}>
+      <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Edit ${title}`}>
         <Pencil className="h-4 w-4" />
       </Button>
     </div>
@@ -33,7 +33,7 @@ const YesNoReviewSection = ({ title, data, onEdit }: { title: string; data: any;
     <div>
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-lg font-semibold">{title}</h3>
-        <Button variant="ghost" size="icon" onClick={onEdit}>
+        <Button variant="ghost" size="icon" onClick={onEdit} aria-label={`Edit ${title}`}>
           <Pencil className="h-4 w-4" />
         </Button>
       </div>
@@ -76,7 +76,7 @@ export const ReviewStep = ({ formData, prevStep, goToStep, submit }: ReviewStepP
         <div>
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">ID Information</h3>
-            <Button variant="ghost" size="icon" onClick={() => goToStep(5)}>
+            <Button variant="ghost" size="icon" onClick={() => goToStep(5)} aria-label="Edit ID Information">
               <Pencil className="h-4 w-4" />
             </Button>
           </div>
