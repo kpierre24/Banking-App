@@ -18,6 +18,8 @@ const formSchema = z.object({
   middleName: z.string().optional(),
   lastName: z.string().min(2, "Last name is required"),
   dateOfBirth: z.date({ required_error: "Date of birth is required." }),
+  email: z.string().email("Invalid email address."),
+  mobileNumber: z.string().min(10, "Please enter a valid mobile number."),
   schoolName: z.string().optional(),
   nationality: z.string({ required_error: "Nationality is required." }),
   password: z.string().min(8, "Password must be at least 8 characters."),
@@ -122,6 +124,23 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
               </FormItem>
             )} />
           )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="email" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl><Input type="email" placeholder="john.doe@example.com" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="mobileNumber" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile Number</FormLabel>
+                <FormControl><Input type="tel" placeholder="123-456-7890" {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
 
           <FormField control={form.control} name="nationality" render={({ field }) => (
             <FormItem>
