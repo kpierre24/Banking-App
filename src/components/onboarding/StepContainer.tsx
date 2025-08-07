@@ -25,11 +25,11 @@ export const StepContainer = ({ title, description, children, onNext, onBack, ne
         </CardContent>
         <CardFooter className="flex justify-between">
           {onBack ? (
-            <Button type="button" variant="outline" onClick={onBack}>
+            <Button type="button" className="bg-brand-secondary hover:bg-brand-secondary/90 text-white" onClick={onBack}>
               {backText}
             </Button>
           ) : <div />}
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting} className="bg-brand-primary hover:bg-brand-primary/90 text-white">
             {nextText}
           </Button>
         </CardFooter>

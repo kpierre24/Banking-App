@@ -92,8 +92,8 @@ export const ReviewStep = ({ formData, prevStep, goToStep, submit }: ReviewStepP
         <ReviewSection title="Beneficiary" data={formData.beneficiary} onEdit={() => goToStep(7)} />
       </CardContent>
       <CardFooter className="flex justify-between">
-        <Button variant="outline" onClick={prevStep}>Back</Button>
-        <Button onClick={submit}>Submit Application</Button>
+        <Button className="bg-brand-secondary hover:bg-brand-secondary/90 text-white" onClick={prevStep}>Back</Button>
+        <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white" onClick={submit}>Submit Application</Button>
       </CardFooter>
     </Card>
   );

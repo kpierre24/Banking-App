@@ -13,7 +13,7 @@ export const SuccessStep = ({ reset }: { reset: () => void }) => {
         <CardDescription>Thank you! Your application has been successfully submitted. We will review it and get back to you within 3-5 business days.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button onClick={reset}>Start New Application</Button>
+        <Button className="bg-brand-primary hover:bg-brand-primary/90 text-white" onClick={reset}>Start New Application</Button>
       </CardContent>
     </Card>
   );
