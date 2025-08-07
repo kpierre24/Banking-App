@@ -9,7 +9,9 @@ import { ReviewStep } from "@/components/onboarding/ReviewStep";
 import { SuccessStep } from "@/components/onboarding/SuccessStep";
 import { OnboardingHeader } from "@/components/onboarding/OnboardingHeader";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
-import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
+import { MainLayout } from "@/components/layout/MainLayout";
+import { CustomerTypeStep } from "@/components/onboarding/CustomerTypeStep";
+import { showError } from "@/utils/toast";
 
 const stepNames = [
   "Basic Info",
@@ -26,8 +28,17 @@ const stepNames = [
 const TOTAL_STEPS = stepNames.length;
 
 const Index = () => {
+  const [customerType, setCustomerType] = usePersistentState<'new' | 'existing' | null>('customerType', null);
   const [step, setStep] = usePersistentState("onboardingStep", 1);
   const [formData, setFormData] = usePersistentState("onboardingFormData", {});
+
+  const handleCustomerTypeSelect = (type: 'new' | 'existing') => {
+    if (type === 'existing') {
+      showError("The existing customer flow is not yet implemented.");
+      return;
+    }
+    setCustomerType(type);
+  };
 
   const nextStep = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS + 1));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
@@ -40,6 +51,7 @@ const Index = () => {
   const reset = () => {
     setStep(1);
     setFormData({});
+    setCustomerType(null);
   }
 
   const updateFormData = (data: any) => {
@@ -72,33 +84,34 @@ const Index = () => {
         return <MembershipDeclarationStep {...props} />;
       case 9:
         return <ReviewStep formData={formData} prevStep={prevStep} goToStep={goToStep} submit={submitApplication} />;
-      case 10:
-        return <SuccessStep reset={reset} />;
       default:
         return <div>Unknown Step</div>;
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4 sm:p-8">
-      <div className="w-full max-w-6xl">
+  const renderOnboardingContent = () => {
+    if (step > TOTAL_STEPS) {
+      return <SuccessStep reset={reset} />;
+    }
+    return (
+      <>
         <OnboardingHeader />
-        {step <= TOTAL_STEPS && (
-          <OnboardingStepper currentStep={step} totalSteps={TOTAL_STEPS} stepNames={stepNames} goToStep={goToStep} />
-        )}
+        <OnboardingStepper currentStep={step} totalSteps={TOTAL_STEPS} stepNames={stepNames} goToStep={goToStep} />
         <div className="mt-8 w-full">
-          {step > TOTAL_STEPS ? (
-             <div className="flex justify-center">
-                <SuccessStep reset={reset} />
-            </div>
-          ) : (
-            <OnboardingLayout>
-              {renderStep()}
-            </OnboardingLayout>
-          )}
+          {renderStep()}
         </div>
-      </div>
-    </div>
+      </>
+    );
+  };
+
+  return (
+    <MainLayout>
+      {!customerType ? (
+        <CustomerTypeStep onSelect={handleCustomerTypeSelect} />
+      ) : (
+        renderOnboardingContent()
+      )}
+    </MainLayout>
   );
 };
 
