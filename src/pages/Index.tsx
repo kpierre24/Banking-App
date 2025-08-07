@@ -1,6 +1,7 @@
 import usePersistentState from "@/hooks/usePersistentState";
 import { BasicInformationStep } from "@/components/onboarding/BasicInformationStep";
 import { AddressStep } from "@/components/onboarding/AddressStep";
+import { IdInformationStep } from "@/components/onboarding/IdInformationStep";
 import { YesNoQuestionStep } from "@/components/onboarding/YesNoQuestionStep";
 import { BeneficiaryStep } from "@/components/onboarding/BeneficiaryStep";
 import { MembershipDeclarationStep } from "@/components/onboarding/MembershipDeclarationStep";
@@ -13,6 +14,7 @@ import { OnboardingLayout } from "@/components/onboarding/OnboardingLayout";
 const stepNames = [
   "Basic Info",
   "Address",
+  "ID Info",
   "PEP",
   "Foreign National",
   "Power of Attorney",
@@ -30,7 +32,6 @@ const Index = () => {
   const nextStep = () => setStep((prev) => Math.min(prev + 1, TOTAL_STEPS + 1));
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
   const goToStep = (stepNumber: number) => {
-    // Allow navigation to any step already visited or the current one
     if (stepNumber <= step) {
       setStep(stepNumber);
     }
@@ -47,7 +48,6 @@ const Index = () => {
 
   const submitApplication = () => {
     console.log("Submitting application:", formData);
-    // Here you would typically send the data to a server
     nextStep();
   };
 
@@ -59,18 +59,20 @@ const Index = () => {
       case 2:
         return <AddressStep {...props} />;
       case 3:
-        return <YesNoQuestionStep {...props} title="Politically Exposed Person" description="Please answer the following question." question="Are you or an immediate family member a Politically Exposed Person (PEP)?" formKey="pep" />;
+        return <IdInformationStep {...props} />;
       case 4:
-        return <YesNoQuestionStep {...props} title="Foreign National Status" description="Please answer the following question." question="Are you a foreign national?" formKey="foreignNational" />;
+        return <YesNoQuestionStep {...props} title="Politically Exposed Person" description="Please answer the following question." question="Are you or an immediate family member a Politically Exposed Person (PEP)?" formKey="pep" />;
       case 5:
-        return <YesNoQuestionStep {...props} title="Power of Attorney" description="Please answer the following question." question="Do you wish to grant Power of Attorney on this account?" formKey="poa" />;
+        return <YesNoQuestionStep {...props} title="Foreign National Status" description="Please answer the following question." question="Are you a foreign national?" formKey="foreignNational" />;
       case 6:
-        return <BeneficiaryStep {...props} />;
+        return <YesNoQuestionStep {...props} title="Power of Attorney" description="Please answer the following question." question="Do you wish to grant Power of Attorney on this account?" formKey="poa" />;
       case 7:
-        return <MembershipDeclarationStep {...props} />;
+        return <BeneficiaryStep {...props} />;
       case 8:
-        return <ReviewStep formData={formData} prevStep={prevStep} goToStep={goToStep} submit={submitApplication} />;
+        return <MembershipDeclarationStep {...props} />;
       case 9:
+        return <ReviewStep formData={formData} prevStep={prevStep} goToStep={goToStep} submit={submitApplication} />;
+      case 10:
         return <SuccessStep reset={reset} />;
       default:
         return <div>Unknown Step</div>;
