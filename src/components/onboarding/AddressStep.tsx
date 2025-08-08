@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/lib/countries";
 import { Combobox } from "@/components/ui/combobox";
+import { supabase } from "@/integrations/supabase/client";
+import { showError } from "@/utils/toast";
 
 const formSchema = z.object({
   address1: z.string().min(2, "Address is required"),
@@ -30,27 +33,76 @@ const countryOptions = countries.map(country => ({
 }));
 
 export const AddressStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       ...formData.address,
-      addressDocumentUpload: null, // File inputs cannot be pre-filled for security reasons
+      addressDocumentUpload: null,
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // In a real app, you would upload the file to a server.
-    // For this demo, we'll just store the filename.
-    const persistentData = {
-      ...data,
-      addressDocumentUpload: data.addressDocumentUpload[0].name,
-    };
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError("You must be logged in to continue.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const file = data.addressDocumentUpload[0];
+    const filePath = `${user.id}/${formData.signupId}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage.from('address_documents').upload(filePath, file);
+
+    if (uploadError) {
+      showError(`Failed to upload document: ${uploadError.message}`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { data: addressData, error: addressError } = await supabase.from('addresses').insert({
+      user_id: user.id,
+      signup_id: formData.signupId,
+      address1: data.address1,
+      address2: data.address2,
+      city: data.city,
+      country: data.country,
+      address_document_type: data.addressDocumentType,
+    }).select().single();
+
+    if (addressError || !addressData) {
+      showError(`Failed to save address: ${addressError?.message || 'Unknown error'}`);
+      await supabase.storage.from('address_documents').remove([filePath]);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error: fileError } = await supabase.from('address_files').insert({
+      user_id: user.id,
+      signup_id: formData.signupId,
+      address_id: addressData.id,
+      file_name: file.name,
+      file_path: filePath,
+      file_type: file.type,
+    });
+
+    if (fileError) {
+      showError(`Failed to save document record: ${fileError.message}`);
+      await supabase.from('addresses').delete().eq('id', addressData.id);
+      await supabase.storage.from('address_documents').remove([filePath]);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const persistentData = { ...data, addressDocumentUpload: file.name };
     updateFormData({ address: persistentData });
     nextStep();
+    setIsSubmitting(false);
   };
 
   return (
-    <StepContainer title="Mailing Address" description="Where should we send your mail?" onNext={form.handleSubmit(onSubmit)} onBack={prevStep}>
+    <StepContainer title="Mailing Address" description="Where should we send your mail?" onNext={form.handleSubmit(onSubmit)} onBack={prevStep} isSubmitting={isSubmitting}>
       <Form {...form}>
         <div className="space-y-4">
           <FormField control={form.control} name="address1" render={({ field }) => (

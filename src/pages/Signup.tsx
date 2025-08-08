@@ -5,6 +5,8 @@ import { OnboardingHeader } from "@/components/onboarding/OnboardingHeader";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Skeleton } from '@/components/ui/skeleton';
+import { supabase } from '@/integrations/supabase/client';
+import { showError } from '@/utils/toast';
 
 const GettingReadyStep = lazy(() => import('@/components/onboarding/GettingReadyStep').then(module => ({ default: module.GettingReadyStep })));
 const BasicInformationStep = lazy(() => import('@/components/onboarding/BasicInformationStep').then(module => ({ default: module.BasicInformationStep })));
@@ -72,17 +74,28 @@ const SignupPage = () => {
   useEffect(() => {
     const hasSavedData = Object.keys(formData).length > 0 && formData.signupId;
     if (hasSavedData) {
-      setPromptState('prompt');
+      // Also check if the user is still logged in for that session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session && session.user.id === formData.userId) {
+          setPromptState('prompt');
+        } else {
+          // Clear invalid session data
+          startNewSession(false);
+          setPromptState('active');
+        }
+      });
     } else {
       setPromptState('active');
     }
   }, []);
 
-  const startNewSession = () => {
+  const startNewSession = (clearCustomerType = true) => {
     const newSignupId = `signup_${Date.now()}`;
     setFormData({ signupId: newSignupId });
     setStep(1);
-    setCustomerType(null);
+    if (clearCustomerType) {
+      setCustomerType(null);
+    }
     setPromptState('active');
   };
 
@@ -129,9 +142,8 @@ const SignupPage = () => {
   };
 
   const submitApplication = () => {
-    console.log("Submitting application:", formData);
-    // Note: In a real application, avoid storing sensitive data in localStorage.
-    // Data should be sent to a secure backend and cleared from client-side storage.
+    console.log("Finalizing application for signup ID:", formData.signupId);
+    // Data is already saved incrementally. This is the final step.
     nextStep();
   };
 

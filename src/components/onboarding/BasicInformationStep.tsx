@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,6 +50,7 @@ const countryOptions = countries.map(country => ({
 }));
 
 export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -63,7 +65,8 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
   const isUnder18 = dateOfBirth ? calculateAge(dateOfBirth) < 18 : false;
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    const { error } = await supabase.auth.signUp({
+    setIsSubmitting(true);
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
@@ -74,17 +77,41 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
       }
     });
 
-    if (error) {
-      showError(error.message);
-    } else {
-      showSuccess("Account created! Please check your email to verify.");
-      updateFormData({ basicInfo: data });
-      nextStep();
+    if (authError) {
+      showError(authError.message);
+      setIsSubmitting(false);
+      return;
     }
+
+    if (authData.user) {
+      const { error: signupError } = await supabase.from('signups').insert({
+        user_id: authData.user.id,
+        signup_id: formData.signupId,
+        first_name: data.firstName,
+        middle_name: data.middleName,
+        last_name: data.lastName,
+        date_of_birth: data.dateOfBirth.toISOString().split('T')[0],
+        email: data.email,
+        mobile_number: data.mobileNumber,
+        school_name: data.schoolName,
+        nationality: data.nationality,
+      });
+
+      if (signupError) {
+        showError(`Failed to save basic information: ${signupError.message}`);
+      } else {
+        showSuccess("Account created! Please check your email to verify.");
+        updateFormData({ basicInfo: data, userId: authData.user.id });
+        nextStep();
+      }
+    } else {
+      showError("An unexpected error occurred during signup.");
+    }
+    setIsSubmitting(false);
   };
 
   return (
-    <StepContainer title="Basic Information" description="Please provide your personal details." onNext={form.handleSubmit(onSubmit)} onBack={prevStep}>
+    <StepContainer title="Basic Information" description="Please provide your personal details." onNext={form.handleSubmit(onSubmit)} onBack={prevStep} isSubmitting={isSubmitting}>
       <Form {...form}>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

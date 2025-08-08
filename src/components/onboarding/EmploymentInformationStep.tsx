@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,6 +7,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OnboardingStepProps } from "./AddressStep";
+import { supabase } from "@/integrations/supabase/client";
+import { showError } from "@/utils/toast";
 
 const formSchema = z.object({
   employmentStatus: z.enum(["Employed", "Self-Employed", "Unemployed", "Student", "Retired"], {
@@ -14,16 +17,17 @@ const formSchema = z.object({
   employerName: z.string().optional(),
   jobTitle: z.string().optional(),
 }).refine(data => {
-  if (data.employmentStatus === "Employed") {
+  if (data.employmentStatus === "Employed" || data.employmentStatus === "Self-Employed") {
     return !!data.employerName && !!data.jobTitle;
   }
   return true;
 }, {
-  message: "Employer name and job title are required.",
-  path: ["employerName"], // You can choose which field to show the error on
+  message: "Employer name and job title are required for this status.",
+  path: ["employerName"],
 });
 
 export const EmploymentInformationStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: formData.employmentInfo || {},
@@ -34,13 +38,34 @@ export const EmploymentInformationStep = ({ formData, updateFormData, nextStep, 
     name: 'employmentStatus'
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    updateFormData({ employmentInfo: data });
-    nextStep();
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError("You must be logged in to continue.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.from('employments').insert({
+      user_id: user.id,
+      signup_id: formData.signupId,
+      employment_status: data.employmentStatus,
+      employer_name: data.employerName,
+      job_title: data.jobTitle,
+    });
+
+    if (error) {
+      showError(`Failed to save employment info: ${error.message}`);
+    } else {
+      updateFormData({ employmentInfo: data });
+      nextStep();
+    }
+    setIsSubmitting(false);
   };
 
   return (
-    <StepContainer title="Employment Information" description="Please provide your employment details." onNext={form.handleSubmit(onSubmit)} onBack={prevStep}>
+    <StepContainer title="Employment Information" description="Please provide your employment details." onNext={form.handleSubmit(onSubmit)} onBack={prevStep} isSubmitting={isSubmitting}>
       <Form {...form}>
         <div className="space-y-4">
           <FormField control={form.control} name="employmentStatus" render={({ field }) => (

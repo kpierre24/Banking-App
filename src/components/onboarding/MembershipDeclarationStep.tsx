@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -5,6 +6,8 @@ import { StepContainer } from "./StepContainer";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { OnboardingStepProps } from "./AddressStep";
+import { supabase } from "@/integrations/supabase/client";
+import { showError } from "@/utils/toast";
 
 const formSchema = z.object({
   agreed: z.boolean().refine(val => val === true, {
@@ -13,18 +16,38 @@ const formSchema = z.object({
 });
 
 export const MembershipDeclarationStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { agreed: false },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    updateFormData({ declaration: data });
-    nextStep();
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError("You must be logged in to continue.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error } = await supabase.from('membership_declarations').insert({
+      user_id: user.id,
+      signup_id: formData.signupId,
+      agreed: data.agreed,
+    });
+
+    if (error) {
+      showError(`Failed to save declaration: ${error.message}`);
+    } else {
+      updateFormData({ declaration: data });
+      nextStep();
+    }
+    setIsSubmitting(false);
   };
 
   return (
-    <StepContainer title="Membership Declaration" description="Please review and agree to the terms." onNext={form.handleSubmit(onSubmit)} onBack={prevStep} nextText="Agree & Continue">
+    <StepContainer title="Membership Declaration" description="Please review and agree to the terms." onNext={form.handleSubmit(onSubmit)} onBack={prevStep} nextText="Agree & Continue" isSubmitting={isSubmitting}>
       <Form {...form}>
         <div className="space-y-4">
           <div className="p-4 border rounded-md text-sm max-h-48 overflow-y-auto">

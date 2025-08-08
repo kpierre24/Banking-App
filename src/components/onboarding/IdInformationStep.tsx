@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { OnboardingStepProps } from "./AddressStep";
+import { supabase } from "@/integrations/supabase/client";
+import { showError } from "@/utils/toast";
 
 const idDocumentSchema = z.object({
   idType: z.string({ required_error: "Please select an ID type." }),
@@ -90,39 +93,72 @@ const IdDocumentForm = ({ form, namePrefix, title }: { form: any, namePrefix: "f
 }
 
 export const IdInformationStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstId: {
-        ...formData.idInfo?.firstId,
-        expiryDate: formData.idInfo?.firstId?.expiryDate ? new Date(formData.idInfo.firstId.expiryDate) : undefined,
-        idUpload: null,
-      },
-      secondId: {
-        ...formData.idInfo?.secondId,
-        expiryDate: formData.idInfo?.secondId?.expiryDate ? new Date(formData.idInfo.secondId.expiryDate) : undefined,
-        idUpload: null,
-      }
+      firstId: { ...formData.idInfo?.firstId, expiryDate: formData.idInfo?.firstId?.expiryDate ? new Date(formData.idInfo.firstId.expiryDate) : undefined, idUpload: null },
+      secondId: { ...formData.idInfo?.secondId, expiryDate: formData.idInfo?.secondId?.expiryDate ? new Date(formData.idInfo.secondId.expiryDate) : undefined, idUpload: null }
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    const persistentData = {
-      firstId: {
-        ...data.firstId,
-        idUpload: data.firstId.idUpload[0].name,
-      },
-      secondId: {
-        ...data.secondId,
-        idUpload: data.secondId.idUpload[0].name,
-      },
-    };
-    updateFormData({ idInfo: persistentData });
-    nextStep();
+  const processIdDocument = async (user: any, idData: z.infer<typeof idDocumentSchema>, order: number) => {
+    const file = idData.idUpload[0];
+    const filePath = `${user.id}/${formData.signupId}/${Date.now()}_id${order}_${file.name}`;
+    
+    const { error: uploadError } = await supabase.storage.from('id_documents').upload(filePath, file);
+    if (uploadError) throw new Error(`Failed to upload document ${order}: ${uploadError.message}`);
+
+    const { data: identData, error: identError } = await supabase.from('identifications').insert({
+      user_id: user.id,
+      signup_id: formData.signupId,
+      id_type: idData.idType,
+      id_number: idData.idNumber,
+      expiry_date: idData.expiryDate?.toISOString().split('T')[0],
+      document_order: order,
+    }).select().single();
+    if (identError || !identData) throw new Error(`Failed to save ID record ${order}: ${identError?.message}`);
+
+    const { error: fileError } = await supabase.from('id_files').insert({
+      user_id: user.id,
+      signup_id: formData.signupId,
+      identification_id: identData.id,
+      file_name: file.name,
+      file_path: filePath,
+      file_type: file.type,
+    });
+    if (fileError) throw new Error(`Failed to save ID file record ${order}: ${fileError.message}`);
+  };
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      showError("You must be logged in to continue.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      await processIdDocument(user, data.firstId, 1);
+      await processIdDocument(user, data.secondId, 2);
+
+      const persistentData = {
+        firstId: { ...data.firstId, idUpload: data.firstId.idUpload[0].name },
+        secondId: { ...data.secondId, idUpload: data.secondId.idUpload[0].name },
+      };
+      updateFormData({ idInfo: persistentData });
+      nextStep();
+    } catch (error: any) {
+      showError(error.message);
+      // Note: A robust implementation would also clean up any partially uploaded files or created records.
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <StepContainer title="ID Information" description="Please provide two identification documents." onNext={form.handleSubmit(onSubmit)} onBack={prevStep}>
+    <StepContainer title="ID Information" description="Please provide two identification documents." onNext={form.handleSubmit(onSubmit)} onBack={prevStep} isSubmitting={isSubmitting}>
       <Form {...form}>
         <div className="space-y-8">
           <IdDocumentForm form={form} namePrefix="firstId" title="First ID Document" />
