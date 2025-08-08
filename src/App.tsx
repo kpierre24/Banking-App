@@ -9,6 +9,7 @@ import { Skeleton } from "./components/ui/skeleton";
 const queryClient = new QueryClient();
 
 const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const App = () => (
@@ -37,6 +38,7 @@ const App = () => (
         }>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

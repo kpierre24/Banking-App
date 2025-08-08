@@ -1,9 +1,9 @@
 import { Suspense, lazy } from 'react';
+import { useNavigate } from 'react-router-dom';
 import usePersistentState from "@/hooks/usePersistentState";
 import { OnboardingHeader } from "@/components/onboarding/OnboardingHeader";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { showError } from "@/utils/toast";
 import { Skeleton } from '@/components/ui/skeleton';
 
 const GettingReadyStep = lazy(() => import('@/components/onboarding/GettingReadyStep').then(module => ({ default: module.GettingReadyStep })));
@@ -62,13 +62,14 @@ const StepLoadingSkeleton = () => (
 );
 
 const Index = () => {
+  const navigate = useNavigate();
   const [customerType, setCustomerType] = usePersistentState<'new' | 'existing' | null>('customerType', null);
   const [step, setStep] = usePersistentState("onboardingStep", 1);
   const [formData, setFormData] = usePersistentState("onboardingFormData", {});
 
   const handleCustomerTypeSelect = (type: 'new' | 'existing') => {
     if (type === 'existing') {
-      showError("The existing customer flow is not yet implemented.");
+      navigate('/login');
       return;
     }
     setCustomerType(type);
