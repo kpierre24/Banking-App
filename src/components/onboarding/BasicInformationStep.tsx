@@ -66,13 +66,20 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
+    
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: {
+          signup_id: formData.signupId,
           first_name: data.firstName,
+          middle_name: data.middleName,
           last_name: data.lastName,
+          date_of_birth: data.dateOfBirth.toISOString().split('T')[0],
+          mobile_number: data.mobileNumber,
+          school_name: data.schoolName,
+          nationality: data.nationality,
         }
       }
     });
@@ -84,26 +91,9 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
     }
 
     if (authData.user) {
-      const { error: signupError } = await supabase.from('signups').insert({
-        user_id: authData.user.id,
-        signup_id: formData.signupId,
-        first_name: data.firstName,
-        middle_name: data.middleName,
-        last_name: data.lastName,
-        date_of_birth: data.dateOfBirth.toISOString().split('T')[0],
-        email: data.email,
-        mobile_number: data.mobileNumber,
-        school_name: data.schoolName,
-        nationality: data.nationality,
-      });
-
-      if (signupError) {
-        showError(`Failed to save basic information: ${signupError.message}`);
-      } else {
         showSuccess("Account created! Please check your email to verify.");
         updateFormData({ basicInfo: data, userId: authData.user.id });
         nextStep();
-      }
     } else {
       showError("An unexpected error occurred during signup.");
     }
@@ -139,7 +129,7 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
             </FormItem>
           )} />
           
-          <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
+          <FormField control={form.control} name="dateOfBirth" render={({ field })_ => (
             <FormItem className="flex flex-col">
               <FormLabel>Date of birth</FormLabel>
               <Popover>
