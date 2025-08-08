@@ -90,7 +90,7 @@ const SignupPage = () => {
   }, []);
 
   const startNewSession = (clearCustomerType = true) => {
-    const newSignupId = `signup_${Date.now()}`;
+    const newSignupId = crypto.randomUUID();
     setFormData({ signupId: newSignupId });
     setStep(1);
     if (clearCustomerType) {
@@ -113,7 +113,7 @@ const SignupPage = () => {
       return;
     }
     if (!formData.signupId) {
-      const newSignupId = `signup_${Date.now()}`;
+      const newSignupId = crypto.randomUUID();
       setFormData({ signupId: newSignupId });
     }
     setCustomerType(type);
