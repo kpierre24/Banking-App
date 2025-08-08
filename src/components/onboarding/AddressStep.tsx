@@ -5,6 +5,8 @@ import { StepContainer } from "./StepContainer";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { countries } from "@/lib/countries";
+import { Combobox } from "@/components/ui/combobox";
 
 const formSchema = z.object({
   address1: z.string().min(2, "Address is required"),
@@ -21,6 +23,11 @@ export interface OnboardingStepProps {
   nextStep: () => void;
   prevStep: () => void;
 }
+
+const countryOptions = countries.map(country => ({
+  value: country,
+  label: country,
+}));
 
 export const AddressStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
@@ -69,9 +76,18 @@ export const AddressStep = ({ formData, updateFormData, nextStep, prevStep }: On
               </FormItem>
             )} />
             <FormField control={form.control} name="country" render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Country</FormLabel>
-                <FormControl><Input placeholder="USA" {...field} /></FormControl>
+                <FormControl>
+                  <Combobox
+                    options={countryOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Select country..."
+                    searchPlaceholder="Search for a country..."
+                    emptyMessage="No country found."
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )} />

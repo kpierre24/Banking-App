@@ -1,4 +1,4 @@
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StepContainer } from "./StepContainer";
@@ -10,8 +10,10 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { countries } from "@/lib/countries";
+import { Combobox } from "@/components/ui/combobox";
+import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import { OnboardingStepProps } from "./AddressStep";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -39,13 +41,12 @@ const calculateAge = (birthDate: Date) => {
   return age;
 };
 
-export interface OnboardingStepProps {
-  formData: any;
-  updateFormData: (data: any) => void;
-  nextStep: () => void;
-}
+const countryOptions = countries.map(country => ({
+  value: country,
+  label: country,
+}));
 
-export const BasicInformationStep = ({ formData, updateFormData, nextStep }: OnboardingStepProps) => {
+export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevStep }: OnboardingStepProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -54,10 +55,8 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
     },
   });
 
-  const dateOfBirth = useWatch({
-    control: form.control,
-    name: 'dateOfBirth'
-  });
+  const dateOfBirth = form.watch('dateOfBirth');
+  const password = form.watch('password');
 
   const isUnder18 = dateOfBirth ? calculateAge(dateOfBirth) < 18 : false;
 
@@ -67,7 +66,7 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
   };
 
   return (
-    <StepContainer title="Basic Information" description="Please provide your personal details." onNext={form.handleSubmit(onSubmit)}>
+    <StepContainer title="Basic Information" description="Please provide your personal details." onNext={form.handleSubmit(onSubmit)} onBack={prevStep}>
       <Form {...form}>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -143,18 +142,18 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
           </div>
 
           <FormField control={form.control} name="nationality" render={({ field }) => (
-            <FormItem>
+            <FormItem className="flex flex-col">
               <FormLabel>Nationality</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your nationality" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {countries.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <Combobox
+                  options={countryOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select nationality..."
+                  searchPlaceholder="Search for a nationality..."
+                  emptyMessage="No nationality found."
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )} />
@@ -164,6 +163,7 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep }: Onb
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl><Input type="password" {...field} /></FormControl>
+                <PasswordStrengthIndicator password={password} />
                 <FormMessage />
               </FormItem>
             )} />
