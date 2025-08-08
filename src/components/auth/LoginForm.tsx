@@ -1,21 +1,38 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { showSuccess, showError } from "@/utils/toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { showError } from "@/utils/toast";
 
 const formSchema = z.object({
-  email: z.string().email("Invalid email address."),
-  password: z.string().min(1, "Password is required."),
+  email: z.string().email({ message: "Invalid email address." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
-export const LoginForm = () => {
+export function LoginForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -24,29 +41,28 @@ export const LoginForm = () => {
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
-
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    const { error } = await supabase.auth.signInWithPassword(values);
     if (error) {
       showError(error.message);
     } else {
-      showSuccess("Login successful!");
-      navigate("/dashboard");
+      navigate("/"); // Redirect to a dashboard or home page on successful login
     }
-  };
+    setIsSubmitting(false);
+  }
 
   return (
     <Card className="w-full max-w-sm">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Welcome Back!</CardTitle>
-        <CardDescription>Enter your credentials to access your account.</CardDescription>
+      <CardHeader>
+        <CardTitle className="text-2xl">Login</CardTitle>
+        <CardDescription>
+          Enter your email below to login to your account.
+        </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
+          <CardContent className="grid gap-4">
             <FormField
               control={form.control}
               name="email"
@@ -54,7 +70,7 @@ export const LoginForm = () => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="john.doe@example.com" {...field} />
+                    <Input placeholder="m@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -67,7 +83,7 @@ export const LoginForm = () => {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -75,18 +91,15 @@ export const LoginForm = () => {
             />
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white">
-              Log In
+            <Button type="submit" className="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800" disabled={isSubmitting}>
+              {isSubmitting ? "Logging in..." : "Log In"}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
-              Don't have an account?{" "}
-              <Link to="/signup" className="font-medium text-brand-primary hover:underline">
-                Sign Up
-              </Link>
+              Don't have an account? <a href="/signup" className="underline">Sign up</a>
             </p>
           </CardFooter>
         </form>
       </Form>
     </Card>
   );
-};
+}
