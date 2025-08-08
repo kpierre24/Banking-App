@@ -23,36 +23,14 @@ export const EmailVerificationStep = ({ formData, nextStep, prevStep }: Onboardi
   });
 
   const email = formData.basicInfo?.email || "your email";
-  const userId = formData.userId;
 
   const handleSendCode = async () => {
-    if (!userId) {
-      showError("User session not found. Please go back to the previous step.");
-      return;
-    }
     setIsSubmitting(true);
-
-    const { error: recordInsertError } = await supabase
-      .from('device_verifications')
-      .upsert({
-        user_id: userId,
-        signup_id: formData.signupId,
-        type: 'email',
-        is_verified: false,
-      }, { onConflict: 'user_id,signup_id,type' });
-
-    if (recordInsertError) {
-      showError(`Could not initiate verification: ${recordInsertError.message}`);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const { error: otpError } = await supabase.auth.signInWithOtp({ email });
-    
+    const { error } = await supabase.auth.signInWithOtp({ email });
     setIsSubmitting(false);
 
-    if (otpError) {
-      showError(`Could not send verification code: ${otpError.message}`);
+    if (error) {
+      showError(`Could not send verification code: ${error.message}`);
     } else {
       showSuccess(`A verification code has been sent to ${email}`);
       setCodeSent(true);
@@ -81,18 +59,18 @@ export const EmailVerificationStep = ({ formData, nextStep, prevStep }: Onboardi
       return;
     }
 
-    const { error: recordUpdateError } = await supabase
+    const { error: recordInsertError } = await supabase
       .from('device_verifications')
-      .update({
+      .insert({
+        user_id: user.id,
+        signup_id: formData.signupId,
+        type: 'email',
         is_verified: true,
         verified_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id)
-      .eq('signup_id', formData.signupId)
-      .eq('type', 'email');
+      });
 
-    if (recordUpdateError) {
-      showError(`Failed to record email verification: ${recordUpdateError.message}`);
+    if (recordInsertError) {
+      showError(`Failed to record email verification: ${recordInsertError.message}`);
     } else {
       showSuccess("Email verified successfully!");
       nextStep();
