@@ -16,19 +16,55 @@ const formSchema = z.object({
 
 export const EmailVerificationStep = ({ formData, nextStep, prevStep }: OnboardingStepProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [codeSent, setCodeSent] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { code: "" },
   });
 
   const email = formData.basicInfo?.email || "your email";
+  const userId = formData.userId;
+
+  const handleSendCode = async () => {
+    if (!userId) {
+      showError("User session not found. Please go back to the previous step.");
+      return;
+    }
+    setIsSubmitting(true);
+
+    const { error: recordInsertError } = await supabase
+      .from('device_verifications')
+      .upsert({
+        user_id: userId,
+        signup_id: formData.signupId,
+        type: 'email',
+        is_verified: false,
+      }, { onConflict: 'user_id,signup_id,type' });
+
+    if (recordInsertError) {
+      showError(`Could not initiate verification: ${recordInsertError.message}`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({ email });
+    
+    setIsSubmitting(false);
+
+    if (otpError) {
+      showError(`Could not send verification code: ${otpError.message}`);
+    } else {
+      showSuccess(`A verification code has been sent to ${email}`);
+      setCodeSent(true);
+    }
+  };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
-    const { error: verifyError } = await supabase.auth.verifyOtp({
+    const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
       email: email,
       token: data.code,
-      type: 'signup',
+      type: 'email',
     });
 
     if (verifyError) {
@@ -38,23 +74,25 @@ export const EmailVerificationStep = ({ formData, nextStep, prevStep }: Onboardi
       return;
     }
     
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = verifyData.user;
     if (!user) {
       showError("Could not find user after verification.");
       setIsSubmitting(false);
       return;
     }
 
-    const { error: recordError } = await supabase.from('device_verifications').insert({
-      user_id: user.id,
-      signup_id: formData.signupId,
-      type: 'email',
-      is_verified: true,
-      verified_at: new Date().toISOString(),
-    });
+    const { error: recordUpdateError } = await supabase
+      .from('device_verifications')
+      .update({
+        is_verified: true,
+        verified_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+      .eq('signup_id', formData.signupId)
+      .eq('type', 'email');
 
-    if (recordError) {
-      showError(`Failed to record email verification: ${recordError.message}`);
+    if (recordUpdateError) {
+      showError(`Failed to record email verification: ${recordUpdateError.message}`);
     } else {
       showSuccess("Email verified successfully!");
       nextStep();
@@ -62,48 +100,45 @@ export const EmailVerificationStep = ({ formData, nextStep, prevStep }: Onboardi
     setIsSubmitting(false);
   };
 
-  const handleResendCode = async () => {
-    const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-    });
-    if (error) {
-        showError(error.message);
-    } else {
-        showSuccess(`A new verification code has been sent to ${email}`);
-    }
-  };
-
   return (
-    <StepContainer title="Verify Your Email" description={`We've sent a verification code to ${email}. Please enter it below.`} onNext={form.handleSubmit(onSubmit)} onBack={prevStep} nextText="Verify & Continue" isSubmitting={isSubmitting}>
-      <Form {...form}>
-        <div className="flex flex-col items-center space-y-6">
-          <FormField control={form.control} name="code" render={({ field }) => (
-            <FormItem>
-              <FormLabel>Verification Code</FormLabel>
-              <FormControl>
-                <InputOTP maxLength={6} {...field}>
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </FormControl>
-              <FormDescription>
-                Enter the 6-digit code sent to your email.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <Button type="button" variant="link" onClick={handleResendCode}>
-            Didn't receive a code? Resend
-          </Button>
-        </div>
-      </Form>
+    <StepContainer 
+      title="Verify Your Email" 
+      description={!codeSent ? `Click the button to send a 6-digit verification code to ${email}.` : `We've sent a verification code to ${email}. Please enter it below.`} 
+      onNext={codeSent ? form.handleSubmit(onSubmit) : handleSendCode} 
+      onBack={prevStep} 
+      nextText={codeSent ? "Verify & Continue" : "Send Code"} 
+      isSubmitting={isSubmitting}
+    >
+      {codeSent && (
+        <Form {...form}>
+          <div className="flex flex-col items-center space-y-6">
+            <FormField control={form.control} name="code" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Verification Code</FormLabel>
+                <FormControl>
+                  <InputOTP maxLength={6} {...field}>
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                      <InputOTPSlot index={5} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </FormControl>
+                <FormDescription>
+                  Enter the 6-digit code sent to your email.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <Button type="button" variant="link" onClick={handleSendCode}>
+              Didn't receive a code? Resend
+            </Button>
+          </div>
+        </Form>
+      )}
     </StepContainer>
   );
 };
