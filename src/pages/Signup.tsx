@@ -61,7 +61,7 @@ const StepLoadingSkeleton = () => (
   </div>
 );
 
-const Index = () => {
+const SignupPage = () => {
   const navigate = useNavigate();
   const [customerType, setCustomerType] = usePersistentState<'new' | 'existing' | null>('customerType', null);
   const [step, setStep] = usePersistentState("onboardingStep", 1);
@@ -69,7 +69,7 @@ const Index = () => {
 
   const handleCustomerTypeSelect = (type: 'new' | 'existing') => {
     if (type === 'existing') {
-      navigate('/login');
+      navigate('/');
       return;
     }
     setCustomerType(type);
@@ -168,4 +168,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default SignupPage;

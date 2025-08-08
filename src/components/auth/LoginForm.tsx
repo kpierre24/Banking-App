@@ -28,8 +28,7 @@ export const LoginForm = () => {
     console.log("Login attempt with:", data);
     if (data.email === "test@example.com" && data.password === "password") {
       showSuccess("Login successful!");
-      // In a real app, you would redirect to a protected dashboard
-      navigate("/"); 
+      navigate("/dashboard"); 
     } else {
       showError("Invalid email or password.");
     }
@@ -77,7 +76,7 @@ export const LoginForm = () => {
             </Button>
             <p className="text-sm text-center text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/" className="font-medium text-brand-primary hover:underline">
+              <Link to="/signup" className="font-medium text-brand-primary hover:underline">
                 Sign Up
               </Link>
             </p>
