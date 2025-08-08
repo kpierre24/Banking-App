@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address."),
@@ -23,14 +24,17 @@ export const LoginForm = () => {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    // Mock login logic for demonstration
-    console.log("Login attempt with:", data);
-    if (data.email === "test@example.com" && data.password === "password") {
-      showSuccess("Login successful!");
-      navigate("/dashboard"); 
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
+
+    if (error) {
+      showError(error.message);
     } else {
-      showError("Invalid email or password.");
+      showSuccess("Login successful!");
+      navigate("/dashboard");
     }
   };
 

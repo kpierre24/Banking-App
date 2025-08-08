@@ -14,6 +14,8 @@ import { countries } from "@/lib/countries";
 import { Combobox } from "@/components/ui/combobox";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import { OnboardingStepProps } from "./AddressStep";
+import { supabase } from "@/integrations/supabase/client";
+import { showError, showSuccess } from "@/utils/toast";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -60,9 +62,25 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
 
   const isUnder18 = dateOfBirth ? calculateAge(dateOfBirth) < 18 : false;
 
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    updateFormData({ basicInfo: data });
-    nextStep();
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          first_name: data.firstName,
+          last_name: data.lastName,
+        }
+      }
+    });
+
+    if (error) {
+      showError(error.message);
+    } else {
+      showSuccess("Account created! Please check your email to verify.");
+      updateFormData({ basicInfo: data });
+      nextStep();
+    }
   };
 
   return (
