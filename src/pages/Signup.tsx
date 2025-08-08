@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import usePersistentState from "@/hooks/usePersistentState";
 import { OnboardingHeader } from "@/components/onboarding/OnboardingHeader";
@@ -19,6 +19,7 @@ const MembershipDeclarationStep = lazy(() => import('@/components/onboarding/Mem
 const ReviewStep = lazy(() => import('@/components/onboarding/ReviewStep').then(module => ({ default: module.ReviewStep })));
 const SuccessStep = lazy(() => import('@/components/onboarding/SuccessStep').then(module => ({ default: module.SuccessStep })));
 const CustomerTypeStep = lazy(() => import('@/components/onboarding/CustomerTypeStep').then(module => ({ default: module.CustomerTypeStep })));
+const ResumeSessionPrompt = lazy(() => import('@/components/onboarding/ResumeSessionPrompt').then(module => ({ default: module.ResumeSessionPrompt })));
 
 const stepNames = [
   "Getting Ready",
@@ -66,11 +67,41 @@ const SignupPage = () => {
   const [customerType, setCustomerType] = usePersistentState<'new' | 'existing' | null>('customerType', null);
   const [step, setStep] = usePersistentState("onboardingStep", 1);
   const [formData, setFormData] = usePersistentState("onboardingFormData", {});
+  const [promptState, setPromptState] = useState<'checking' | 'prompt' | 'active'>('checking');
+
+  useEffect(() => {
+    const hasSavedData = Object.keys(formData).length > 0 && formData.signupId;
+    if (hasSavedData) {
+      setPromptState('prompt');
+    } else {
+      setPromptState('active');
+    }
+  }, []);
+
+  const startNewSession = () => {
+    const newSignupId = `signup_${Date.now()}`;
+    setFormData({ signupId: newSignupId });
+    setStep(1);
+    setCustomerType(null);
+    setPromptState('active');
+  };
+
+  const handleResume = () => {
+    setPromptState('active');
+  };
+
+  const handleStartNew = () => {
+    startNewSession();
+  };
 
   const handleCustomerTypeSelect = (type: 'new' | 'existing') => {
     if (type === 'existing') {
       navigate('/');
       return;
+    }
+    if (!formData.signupId) {
+      const newSignupId = `signup_${Date.now()}`;
+      setFormData({ signupId: newSignupId });
     }
     setCustomerType(type);
     setStep(1);
@@ -90,9 +121,7 @@ const SignupPage = () => {
   };
   
   const reset = () => {
-    setStep(1);
-    setFormData({});
-    setCustomerType(null);
+    startNewSession();
   }
 
   const updateFormData = (data: any) => {
@@ -155,14 +184,23 @@ const SignupPage = () => {
     );
   };
 
+  const renderPageContent = () => {
+    if (promptState === 'checking') {
+      return <StepLoadingSkeleton />;
+    }
+    if (promptState === 'prompt') {
+      return <ResumeSessionPrompt onResume={handleResume} onStartNew={handleStartNew} />;
+    }
+    if (!customerType) {
+      return <CustomerTypeStep onSelect={handleCustomerTypeSelect} />;
+    }
+    return renderOnboardingContent();
+  };
+
   return (
     <MainLayout>
       <Suspense fallback={<StepLoadingSkeleton />}>
-        {!customerType ? (
-          <CustomerTypeStep onSelect={handleCustomerTypeSelect} />
-        ) : (
-          renderOnboardingContent()
-        )}
+        {renderPageContent()}
       </Suspense>
     </MainLayout>
   );
