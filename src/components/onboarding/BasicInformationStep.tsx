@@ -129,7 +129,7 @@ export const BasicInformationStep = ({ formData, updateFormData, nextStep, prevS
             </FormItem>
           )} />
           
-          <FormField control={form.control} name="dateOfBirth" render={({ field })_ => (
+          <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Date of birth</FormLabel>
               <Popover>
