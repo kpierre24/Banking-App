@@ -34,6 +34,14 @@ const idDocumentSchema = z.object({
 const formSchema = z.object({
   firstId: idDocumentSchema,
   secondId: idDocumentSchema,
+}).refine(data => {
+  if (data.firstId.idType && data.secondId.idType) {
+    return data.firstId.idType !== data.secondId.idType;
+  }
+  return true;
+}, {
+  message: "The second ID type must be different from the first.",
+  path: ["secondId", "idType"],
 });
 
 const idTypes = ["ID Card", "Driver's Permit", "Passport", "Birth Certificate"];
